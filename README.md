@@ -1,2 +1,38 @@
-# power-query-project1
-Pbi
+
+= (stockSymbol as text) => let
+        Source = Json.Document(Web.Contents("https://query1.finance.yahoo.com/v8/finance/chart/" & stockSymbol & "?range=5y&interval=1d")),
+        chart = Source[chart],
+        result = chart[result],
+        result1 = result{0},
+        StartBranch = result1,
+        timestamp = StartBranch[timestamp],
+        #"Converted to Table" = Table.FromList(timestamp, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+        #"Added Custom" = Table.AddColumn(#"Converted to Table", "Date", each 25569 + ( [Column1]/60/60/24 )),
+        #"Changed Type" = Table.TransformColumnTypes(#"Added Custom",{{"Date", type date}}),
+        #"Added Index" = Table.AddIndexColumn(#"Changed Type", "Index", 0, 1),
+        #"Removed Columns" = Table.RemoveColumns(#"Added Index",{"Column1"}),
+        EndBranchDate = Table.RenameColumns(#"Removed Columns",{{"Date", "EndBranchDate"}}),
+        #"Changed Type1" = Table.TransformColumnTypes(EndBranchDate,{{"EndBranchDate", type date}}),
+        EndbranchDate2 = Table.RenameColumns(#"Changed Type1",{{"EndBranchDate", "Date"}}),
+        Custom1 = StartBranch,
+        indicators = Custom1[indicators],
+        adjclose = indicators[adjclose],
+        adjclose1 = adjclose{0},
+        adjclose2 = adjclose1[adjclose],
+        #"Converted to Table1" = Table.FromList(adjclose2, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+        EndBranchPrice = Table.AddIndexColumn(#"Converted to Table1", "Index", 0, 1),
+        #"Merged Queries" = Table.NestedJoin(EndBranchPrice,{"Index"},EndbranchDate2,{"Index"},"EndBranchPrice",JoinKind.Inner),
+        #"Expanded EndBranchPrice" = Table.ExpandTableColumn(#"Merged Queries", "EndBranchPrice", {"Date"}, {"Date"}),
+        #"Removed Columns1" = Table.RemoveColumns(#"Expanded EndBranchPrice",{"Index"}),
+        #"Changed Type2" = Table.TransformColumnTypes(#"Removed Columns1",{{"Column1", type number}}),
+        #"Replaced Errors" = Table.ReplaceErrorValues(#"Changed Type2", {{"Column1", null}}),
+        #"Replaced Errors1" = Table.ReplaceErrorValues(#"Replaced Errors", {{"Date", null}}),
+        #"Invoked Custom Function" = Table.AddColumn(#"Replaced Errors1", "stock function", each #"stock function"([Column1])),
+        #"Filtered Rows" = Table.SelectRows(#"Invoked Custom Function", each true),
+        #"Changed Type3" = Table.TransformColumnTypes(#"Filtered Rows",{{"Column1", type text}}),
+        #"Removed Columns2" = Table.RemoveColumns(#"Changed Type3",{"stock function"}),
+        #"Changed Type4" = Table.TransformColumnTypes(#"Removed Columns2",{{"Column1", type text}}),
+        #"Invoked Custom Function1" = Table.AddColumn(#"Changed Type4", "stock function", each #"stock function"([Column1]))
+    in
+        #"Invoked Custom Function1"
+
